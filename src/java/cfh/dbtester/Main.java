@@ -405,10 +405,13 @@ public class Main {
             return;
         }
         try {
+            output.setQuiet(false);
             boolean reachable = inet.isReachable(timeout);
             System.out.printf("%s (%s): %s%n", inet, host, reachable ? "OK" : "unreachable");
         } catch (IOException ex) {
             exception("%s (%s): %s%n", inet, host, ex);
+        } finally {
+            output.setQuiet(quiet);
         }
     }
     
@@ -441,6 +444,7 @@ public class Main {
         }
         
         try {
+            output.setQuiet(false);
             Socket socket = new Socket();
             socket.connect(new InetSocketAddress(host, port), timeout);
             socket.setSoTimeout(timeout);
@@ -456,6 +460,8 @@ public class Main {
             socket.close();
         } catch (IOException ex) {
             exception("Tcp: %s%n", ex);
+        } finally {
+            output.setQuiet(quiet);
         }
     }
 
@@ -520,6 +526,7 @@ public class Main {
     private void listTables(DatabaseMetaData metaData) {
         printHeader("TABLES", null);
         try {
+            output.setQuiet(false);
             ResultSet rset = metaData.getTables(null, null, "%", null);
             boolean first = true;
             while (rset.next()) {
@@ -538,12 +545,15 @@ public class Main {
             }
         } catch (SQLException ex) {
             exception("Tables: %s%n", ex);
+        } finally {
+            output.setQuiet(quiet);
         }
     }
 
     private void listColumns(DatabaseMetaData metaData, String table) {
         printHeader("COLUMNS ", table);
         try {
+            output.setQuiet(false);
             ResultSet tab = metaData.getTables(null, null, "%", null);
             boolean firstTable = true;
             while (tab.next()) {
@@ -587,6 +597,8 @@ public class Main {
             }
         } catch (SQLException ex) {
             exception("Columns: %s%n", ex);
+        } finally {
+            output.setQuiet(quiet);
         }
     }
 
