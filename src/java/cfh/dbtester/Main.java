@@ -94,7 +94,7 @@ public class Main {
                     w = Integer.decode(arg).intValue();
                     continue;
                 } catch (NumberFormatException ex) {
-                    System.out.printf("unrecognized option: -%s%n", arg);
+                    exception("unrecognized option: -%s%n", arg);
                 }
             }
             if (sections == null) {
@@ -249,12 +249,12 @@ public class Main {
             try {
                 reachable = local.isReachable(500);
             } catch (IOException ex) {
-                System.out.printf("%s%n", ex);
+                exception("%s%n", ex);
                 reachable = false;
             }
             System.out.printf("Localhost: %s (%s)%n", local, reachable);
         } catch (UnknownHostException ex) {
-            System.out.printf("Localhost: %s%n", ex);
+            exception("Localhost: %s%n", ex);
         }
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
@@ -262,7 +262,7 @@ public class Main {
                 listInterfaces("", interfaces.nextElement());
             }
         } catch (SocketException ex) {
-            System.out.printf("Interfaces: %s%n", ex);
+            exception("Interfaces: %s%n", ex);
         }
     }
     
@@ -392,7 +392,7 @@ public class Main {
             try {
                 timeout = Integer.parseInt(tokens[1]);
             } catch (NumberFormatException ex) {
-                System.out.printf("Timeout: %s%n", ex);
+                exception("Timeout: %s%n", ex);
                 return;
             }
         }
@@ -401,14 +401,14 @@ public class Main {
         try {
             inet = InetAddress.getByName(host);
         } catch (UnknownHostException ex) {
-            System.out.printf("Host: %s%n", ex);
+            exception("Host: %s%n", ex);
             return;
         }
         try {
             boolean reachable = inet.isReachable(timeout);
             System.out.printf("%s (%s): %s%n", inet, host, reachable ? "OK" : "unreachable");
         } catch (IOException ex) {
-            System.out.printf("%s (%s): %s%n", inet, host, ex);
+            exception("%s (%s): %s%n", inet, host, ex);
         }
     }
     
@@ -427,7 +427,7 @@ public class Main {
         try {
             port = Integer.parseInt(tokens[1]);
         } catch (NumberFormatException ex) {
-            System.out.printf("Port: %s%n", ex);
+            exception("Port: %s%n", ex);
             return;
         }
         int timeout = 1000;
@@ -435,7 +435,7 @@ public class Main {
             try {
                 timeout = Integer.parseInt(tokens[2]);
             } catch (NumberFormatException ex) {
-                System.out.printf("Timeout: %s%n", ex);
+                exception("Timeout: %s%n", ex);
                 return;
             }
         }
@@ -451,11 +451,11 @@ public class Main {
                 System.out.printf("Read: %d bytes%n%s%n%s%n", 
                     read, Arrays.toString(buff), new String(buff, 0, read));
             } catch (IOException ex) {
-                System.out.printf("%s%n", ex);
+                exception("%s%n", ex);
             }
             socket.close();
         } catch (IOException ex) {
-            System.out.printf("Tcp: %s%n", ex);
+            exception("Tcp: %s%n", ex);
         }
     }
 
@@ -474,19 +474,19 @@ public class Main {
                     String name = metaData.getDatabaseProductName();
                     System.out.printf("Product: %s%n", name);
                 } catch (SQLException ex) {
-                    System.out.printf("Product: %s%n", ex);
+                    exception("Product: %s%n", ex);
                 }
                 try {
                     int major = metaData.getDatabaseMajorVersion();
                     System.out.printf("Major: %d%n", major);
                 } catch (SQLException ex) {
-                    System.out.printf("Major: %s%n", ex);
+                    exception("Major: %s%n", ex);
                 }
                 try {
                     int minor = metaData.getDatabaseMinorVersion();
                     System.out.printf("Minor: %d%n", minor);
                 } catch (SQLException ex) {
-                    System.out.printf("Minor: %s%n", ex);
+                    exception("Minor: %s%n", ex);
                 }
                 try {
                     System.out.printf("Catalogs:%n");
@@ -496,7 +496,7 @@ public class Main {
                     }
                     rset.close();
                 } catch (SQLException ex) {
-                    System.out.printf("    %s%n", ex);
+                    exception("    %s%n", ex);
                 }
                 if (tables) {
                     listTables(metaData);
@@ -508,12 +508,12 @@ public class Main {
                     executeSQL(conn);
                 }
             } catch (SQLException ex) {
-                System.out.printf("MetaData: %s%n", ex);
+                exception("MetaData: %s%n", ex);
             } finally {
                 conn.close();
             }
         } catch (SQLException ex) {
-            System.out.printf("Connection: %s%n", ex);
+            exception("Connection: %s%n", ex);
         }
     }
 
@@ -537,7 +537,7 @@ public class Main {
                 System.out.printf("NO TABLE FOUND%n");
             }
         } catch (SQLException ex) {
-            System.out.printf("Tables: %s%n", ex);
+            exception("Tables: %s%n", ex);
         }
     }
 
@@ -586,7 +586,7 @@ public class Main {
                 System.out.printf("NO TABLE FOUND%n");
             }
         } catch (SQLException ex) {
-            System.out.printf("Columns: %s%n", ex);
+            exception("Columns: %s%n", ex);
         }
     }
 
@@ -610,12 +610,12 @@ public class Main {
                     }
                 } while (isResultSet || count != -1);
             } catch (SQLException ex) {
-                System.out.printf("Execute: %s%n", ex);
+                exception("Execute: %s%n", ex);
             } finally {
                 stmt.close();
             }
         } catch (SQLException ex) {
-            System.out.printf("Create: %s%n", ex);
+            exception("Create: %s%n", ex);
         }
     }
     
@@ -705,7 +705,7 @@ public class Main {
                 output.setQuiet(quiet);
             }
         } catch (SQLException ex) {
-            System.out.printf("RS-Meta: %s%n", ex);
+            exception("RS-Meta: %s%n", ex);
             return;
         }
     }
@@ -725,5 +725,14 @@ public class Main {
         System.out.println(SEPARATOR);
         System.out.printf(" %s%n", builder);
         System.out.println(SUBSEPARATOR);
+    }
+    
+    private void exception(String format, Object... args) {
+        try {
+            output.setQuiet(false);
+            System.out.printf(format, args);
+        } finally {
+            output.setQuiet(quiet);
+        }
     }
 }
