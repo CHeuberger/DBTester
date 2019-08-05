@@ -1,0 +1,11 @@
+/.settings/
+/bin/
+/build/
+/logs/
+*.swp
+*~
+*.bak
+/dbtester.log
+/mysql-connector.jar
+/ojdbc14.jar
+/ojdbc7.jar

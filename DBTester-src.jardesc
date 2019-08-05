@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<jardesc>
+    <jar path="DBTester/DBTester-src.jar"/>
+    <options buildIfNeeded="true" compress="true" descriptionLocation="/DBTester/DBTester-src.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="true"/>
+    <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
+    <selectedProjects/>
+    <selectedElements exportClassFiles="false" exportJavaFiles="true" exportOutputFolder="false">
+        <folder path="/DBTester/src"/>
+        <javaElement handleIdentifier="=DBTester/src\/java"/>
+    </selectedElements>
+</jardesc>
