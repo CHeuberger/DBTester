@@ -1,4 +1,4 @@
 Manifest-Version: 1.0
 Main-Class: cfh.dbtester.Main
-Class-Path: mysql-connector.jar hsqldb.jar derby.jar derbyclient.jar ojdbc14.jar ojdbc6.jar ojdbc7.jar
+Class-Path: mysql-connector.jar hsqldb.jar derby.jar derbyclient.jar ojdbc.jar
 Implementation-Vendor: Carlos F. Heuberger
