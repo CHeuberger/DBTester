@@ -13,6 +13,8 @@ import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Driver;
@@ -25,10 +27,13 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 
 public class Main {
@@ -36,6 +41,8 @@ public class Main {
     private static final String VERSION = "1.1";
     
     private static final String DRIVERS_INI = "resources/drivers.ini";
+    
+    private static final String SECTIONS = "cdelmnpz";
 
     private static final String TABLE_FORMAT = "%-16.16s | %-16.16s | %-32.32s | %-6.6s%n";
     private static final String COLUMN_FORMAT = "%-16.16s | %-16.16s | %-12.12s | %-16.16s%n";
@@ -84,7 +91,7 @@ public class Main {
                 usage();
                 System.exit(1);
             }
-            if (arg.equals("q")) {
+            if (arg.equals("q") || arg.equals("quiet")) {
                 quiet = true;
                 output.setQuiet(true);
                 continue;
@@ -96,6 +103,10 @@ public class Main {
                 } catch (NumberFormatException ex) {
                     exception("unrecognized option: -%s%n", arg);
                 }
+            } else if (arg.length() > 1 || !SECTIONS.contains(arg)) {
+                exception("invalid section: -%s%n", arg);
+                usage();
+                System.exit(1);
             }
             if (sections == null) {
                 sections = arg;
@@ -160,6 +171,7 @@ public class Main {
         System.out.println("    -<section>... - restricts output to given section");
         System.out.println("                    c - classpath");
         System.out.println("                    d - drivers");
+        System.out.println("                    e - encoding");
         System.out.println("                    l - library path");
         System.out.println("                    m - manager");
         System.out.println("                    n - network");
@@ -174,6 +186,9 @@ public class Main {
         System.out.println("         ...");
         System.out.println("    ping:<host>[:<timeout>] - check if the host is reachable");
         System.out.println("    tcp:<host>:<portnumber> - open TCP");
+        System.out.println("User:");
+        System.out.println("    user to use for connecting");
+        System.out.println("    \"-\" to use user from URL");
         System.out.println();
         System.out.println("Arguments:");
         System.out.println("    tables - show list of tables");
@@ -229,6 +244,7 @@ public class Main {
         }
         if (runSection("n")) showNetwork();
         showDrivers(runSection("d"));
+        if (runSection("e")) showEncodings();
         if (runSection("m")) showDriveManager();
         if (runSection("c")) showClassPath();
         if (runSection("l")) showLibraryPath();
@@ -325,6 +341,49 @@ public class Main {
         }
     }
     
+    private void showEncodings() {
+        printHeader("ENCODING", null);
+        String[] keys = { 
+                "file.encoding",
+                "file.encoding.pkg",
+                "sun.io.unicode.encoding",
+                "sun.jnu.encoding",
+                "user.country",
+                "user.country.format",
+                "user.language",
+                };
+        for (String key : keys) {
+            String val = System.getProperty(key);
+            if (val != null) {
+                System.out.printf("%s = %s%n", key, val);
+            }
+        }
+        
+        System.out.println();
+        System.out.printf("Charset: %s (%s)%n", Charset.defaultCharset().displayName(), Charset.defaultCharset().aliases());
+        if (Charset.defaultCharset() != StandardCharsets.UTF_8) {
+            System.out.printf("\\u20AC = %s%n", bytes("\u20AC", Charset.defaultCharset()));
+        }
+        System.out.printf("\\u20AC = %s%n", bytes("\u20AC", null));
+        System.out.printf("\\u20AC = %s%n", bytes("\u20AC", StandardCharsets.UTF_8));
+        System.out.printf("\\u20AC = %s%n", bytes("\u20AC", StandardCharsets.UTF_16BE));
+        // TODO
+    }
+    
+    private String bytes(String text, Charset charset) {
+        Formatter f = new Formatter();
+        for (byte b : charset == null ? text.getBytes() : text.getBytes(charset)) {
+            if (Character.isAlphabetic((char)(b & 0xFF)))
+                f.format("%02X(%c) " , b & 0xFF, (char)(b & 0xFF));
+            else
+                f.format("%02X  " , b & 0xFF);
+        }
+        if (charset != null) {
+            f.format(" [%s]", charset.displayName());
+        }
+        return f.toString();
+    }
+    
     private void showDriveManager() {
         printHeader("DRIVE MANAGER", null);
         System.out.printf("Login timeout: %d seconds%n", DriverManager.getLoginTimeout());
@@ -364,7 +423,8 @@ public class Main {
     private void showProperties() {
         printHeader("SYSTEM PROPERTIES", null);
         Properties props = System.getProperties();
-        for (String key : props.stringPropertyNames()) {
+        SortedSet<String> keys = new TreeSet<String>(props.stringPropertyNames());
+        for (String key : keys) {
             String value = props.getProperty(key);
             System.out.printf("%s = %s%n", key, value);
         }
@@ -448,6 +508,8 @@ public class Main {
             Socket socket = new Socket();
             socket.connect(new InetSocketAddress(host, port), timeout);
             socket.setSoTimeout(timeout);
+            System.out.printf("Connected: %s%n", socket.getRemoteSocketAddress());
+            System.out.printf("Local: %s%n", socket.getLocalSocketAddress());
             byte[] buff = new byte[256];
             int read = 0;
             try {
@@ -468,6 +530,13 @@ public class Main {
     private void printConnect() {
         printHeader("CONNECT", url + " " + user);
         try {
+            Driver driver = DriverManager.getDriver(url);
+            String clazz = driver.getClass().getName();
+            System.out.printf("Driver class: %s%n", clazz);
+        } catch (SQLException ex) {
+            exception("Driver class: %s%n", ex);
+        }
+        try {
             Connection conn;
             if (user == null || user.equals("-")) {
                 conn = DriverManager.getConnection(url);
@@ -483,6 +552,12 @@ public class Main {
                     exception("Product: %s%n", ex);
                 }
                 try {
+                    String version = metaData.getDatabaseProductVersion();
+                    System.out.printf("Product Version: %s%n", version);
+                } catch (SQLException ex) {
+                    exception("Product Version: %s%n", ex);
+                }
+                try {
                     int major = metaData.getDatabaseMajorVersion();
                     System.out.printf("Major: %d%n", major);
                 } catch (SQLException ex) {
@@ -495,6 +570,42 @@ public class Main {
                     exception("Minor: %s%n", ex);
                 }
                 try {
+                    String driver = metaData.getDriverName();
+                    System.out.printf("Driver: %s%n", driver);
+                } catch (SQLException ex) {
+                    exception("Product Version: %s%n", ex);
+                }
+                try {
+                    String version = metaData.getDriverVersion();
+                    System.out.printf("Driver Version: %s%n", version);
+                } catch (SQLException ex) {
+                    exception("Product Version: %s%n", ex);
+                }
+                try {
+                    int major = metaData.getJDBCMajorVersion();
+                    System.out.printf("JDBC Major: %d%n", major);
+                } catch (SQLException ex) {
+                    exception("JDBC Major: %s%n", ex);
+                }
+                try {
+                    int minor = metaData.getJDBCMinorVersion();
+                    System.out.printf("JDBC Minor: %d%n", minor);
+                } catch (SQLException ex) {
+                    exception("JDBC Minor: %s%n", ex);
+                }
+                try {
+                    int max = metaData.getMaxConnections();
+                    System.out.printf("Max Connections: %s%n", max==0 ? "unknown" : max);
+                } catch (SQLException ex) {
+                    exception("Max Connections: %s%n", ex);
+                }
+                try {
+                    String term = metaData.getCatalogTerm();
+                    System.out.printf("Catalog Term: %s%n", term);
+                } catch (SQLException ex) {
+                    exception("Catalog Term: %s%n", ex);
+                }
+                try {
                     System.out.printf("Catalogs:%n");
                     ResultSet rset = metaData.getCatalogs();
                     while (rset.next()) {
@@ -503,6 +614,28 @@ public class Main {
                     rset.close();
                 } catch (SQLException ex) {
                     exception("    %s%n", ex);
+                }
+                try {
+                    String term = metaData.getSchemaTerm();
+                    System.out.printf("Schema Term: %s%n", term);
+                } catch (SQLException ex) {
+                    exception("Schema Term: %s%n", ex);
+                }
+                try {
+                    System.out.printf("Schemas:%n");
+                    ResultSet rset = metaData.getSchemas();
+                    while (rset.next()) {
+                        System.out.printf("    %s%n", rset.getString(1));
+                    }
+                    rset.close();
+                } catch (SQLException ex) {
+                    exception("    %s%n", ex);
+                }
+                try {
+                    String term = metaData.getProcedureTerm();
+                    System.out.printf("Procedure Term: %s%n", term);
+                } catch (SQLException ex) {
+                    exception("Procedure Term: %s%n", ex);
                 }
                 if (tables) {
                     listTables(metaData);
