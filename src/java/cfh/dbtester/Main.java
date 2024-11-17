@@ -38,7 +38,7 @@ import java.util.TreeSet;
 
 public class Main {
     
-    private static final String VERSION = "1.1";
+    private static final String VERSION = "1.2";
     
     private static final String DRIVERS_INI = "resources/drivers.ini";
     
@@ -329,9 +329,9 @@ public class Main {
         }
         for (String driver : drivers) {
             try {
-                Class.forName(driver);
+                Class<?> cl = Class.forName(driver);
                 if (show) {
-                    System.out.printf("%s OK%n", driver);
+                    System.out.printf("%s OK  (%s)%n", driver, cl.getProtectionDomain().getCodeSource().getLocation());
                 }
             } catch (ClassNotFoundException ex) {
                 if (show) {
